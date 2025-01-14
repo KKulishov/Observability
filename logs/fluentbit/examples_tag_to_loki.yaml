@@ -1,0 +1,229 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluent-bit-config
+  namespace: logging
+  labels:
+    k8s-app: fluent-bit
+data:
+  # Configuration files: server, input, filters and output
+  # ======================================================
+  fluent-bit.conf: |
+    [SERVICE]
+        Flush         1
+        Log_Level     info
+        Daemon        off
+        Parsers_File  parsers.conf
+        HTTP_Server   On
+        HTTP_Listen   0.0.0.0
+        HTTP_Port     2020
+
+    @INCLUDE input-kubernetes.conf
+    @INCLUDE filter-kubernetes.conf
+    @INCLUDE output-graylog.conf
+
+  input-kubernetes.conf: |
+    [INPUT]
+        Name              tail
+        Tag               infra.*
+        Path              /var/log/containers/*kube-system*.log,/var/log/containers/*longhorn-system*.log,/var/log/containers/*node-problem-detector*.log,/var/log/containers/*cattle-system*.log
+        Parser            docker
+        DB                /var/log/flb_kube_infra.db
+        Buffer_Chunk_Size  2MB
+        Buffer_Max_Size    20MB
+        Mem_Buf_Limit      60MB
+        Ignore_Older       3h
+        Skip_Long_Lines   On
+        Refresh_Interval  30
+
+    [INPUT]
+        Name              tail
+        Tag               ingress-nginx.*
+        Path              /var/log/containers/*ingress-nginx*.log
+        Parser            docker
+        DB                /var/log/flb_kube_infra.db
+        Buffer_Chunk_Size  2MB
+        Buffer_Max_Size    5MB
+        Mem_Buf_Limit      15MB
+        Ignore_Older       3h
+        Skip_Long_Lines   On
+        Refresh_Interval  30 
+
+    [INPUT]    
+        Name              tail
+        Tag               monq-app-prod.*
+        Path              /var/log/containers/*_monq-app-prod_*.log
+        Parser            docker
+        DB                /var/log/flb_kube_all.db
+        Buffer_Chunk_Size  2MB
+        Buffer_Max_Size    5MB
+        Mem_Buf_Limit      15MB
+        Ignore_Older       3h
+        Skip_Long_Lines   On
+        Refresh_Interval  10       
+
+  filter-kubernetes.conf: |
+    [FILTER]
+        Name              grep
+        Match             kube.*
+        Exclude           log ^$
+    [FILTER]
+        Name                kubernetes
+        Match               kube.*
+        Kube_URL            https://kubernetes.default.svc.cluster.local:443
+        Merge_Log           On
+        K8S-Logging.Parser  On
+        Buffer_Size         2Mb
+        
+    [FILTER]
+        Name              grep
+        Match             infra.*
+        Exclude           log ^$
+    [FILTER]
+        Name                kubernetes
+        Match               infra.*
+        Kube_URL            https://kubernetes.default.svc.cluster.local:443
+        Merge_Log           On
+        K8S-Logging.Parser  On
+        Buffer_Size         2Mb
+
+    [FILTER]
+        Name              grep
+        Match             monq-app-prod.*
+        Exclude           log ^$
+    [FILTER]
+        Name                kubernetes
+        Match               monq-app-prod.*
+        Kube_URL            https://kubernetes.default.svc.cluster.local:443
+        Kube_Tag_Prefix     monq-app-prod.var.log.containers.
+        Merge_Log           On
+        K8S-Logging.Parser  On
+        Buffer_Size         2Mb    
+
+    [FILTER]
+        Name                kubernetes
+        Match               ingress-nginx.*
+        Kube_URL            https://kubernetes.default.svc.cluster.local:443
+        Merge_Log           On
+        Kube_Tag_Prefix     ingress-nginx.var.log.containers.
+        K8S-Logging.Parser  On
+        Buffer_Size         2Mb      
+
+    # ${HOSTNAME} returns the host name.
+    # But Fluentbit runs in a container. So, it is not meaningful.
+    # Instead, copy the host name from the Kubernetes object.
+    [FILTER]
+        Name nest
+        Match *
+        Operation lift
+        Nested_under kubernetes
+
+    # Remove offending fields, see: https://github.com/fluent/fluent-bit/issues/1291
+    [FILTER]
+        Name record_modifier
+        Match *
+        Remove_key annotations
+        Remove_key labels
+
+    [FILTER]
+        Name           grep 
+        Match          ingress-nginx.*
+        Exclude        while reading PROXY protocol
+
+    # https://github.com/fluent/fluent-bit/issues/1897
+    [FILTER]
+        Name modify
+        Match *  
+        Add host ${HOSTNAME}
+        Add k8s_clusters k8s-monq-prod
+        Rename log short_message    
+
+  output-graylog.conf: |
+    [OUTPUT]
+        Name          gelf
+        Match         infra.*
+        Host          10.80.150.134
+        Port          14453
+        Mode          udp
+        #Gelf_Host_Key  ${HOSTNAME}
+        #Gelf_Short_Message_Key log
+        Workers       10
+        Retry_Limit   2
+        net.keepalive       false
+        net.connect_timeout 3
+
+    #[OUTPUT]
+    #    Name          gelf
+    #    Match         infra.*
+    #    Host          graylog-udp-input.graylog.svc.cluster.local
+    #    Port          12222
+    #    Mode          udp
+    #    #Gelf_Host_Key  ${HOSTNAME}
+    #    #Gelf_Short_Message_Key log
+    #    Workers       10
+    #    Retry_Limit   2
+    #    net.keepalive       false
+    #    net.connect_timeout 3
+
+    #[OUTPUT]
+    #    Name          gelf
+    #    Match         kube.*
+    #    Host          10.80.105.34
+    #    Port          12240
+    #    Mode          udp
+    #    #Gelf_Host_Key  ${HOSTNAME}
+    #    #Gelf_Short_Message_Key log
+    #    Workers       10
+    #    Retry_Limit   2
+    #    net.keepalive       false
+    #    net.connect_timeout 3
+
+    [OUTPUT]
+        Name          loki
+        Match         monq-app-prod.*
+        Host          10.70.201.13
+        Port          443
+        uri           /loki/api/v1/push
+        labels        job=fqdn-${HOSTNAME}, k8s_clusters=k8s-monq-prod
+        label_keys    $container_name['container'], $sub['stream']
+        tls           on
+        tls.verify    off
+        line_format   json
+        http_user     promtail
+        http_passwd   xxxx
+
+    [OUTPUT]
+        Name          gelf
+        Match         ingress-nginx.*
+        Host          10.80.150.134
+        Port          14998
+        Mode          udp
+        #Gelf_Host_Key  ${HOSTNAME}
+        #Gelf_Short_Message_Key log
+        Workers       10
+        Retry_Limit   2
+        net.keepalive       false
+        net.connect_timeout 3     
+
+  parsers.conf: |
+    [PARSER]
+        Name   json
+        Format json
+        Time_Key time
+        Time_Format %d/%b/%Y:%H:%M:%S %z
+
+    [PARSER]
+        Name        docker
+        Format      json
+        Time_Key    time
+        Time_Format %Y-%m-%dT%H:%M:%S.%L
+        # Command      |  Decoder | Field | Optional Action
+        # =============|==================|=================
+        Decode_Field_As   escaped    log
+
+    [PARSER]
+        Name        syslog
+        Format      regex
+        Regex       ^\<(?<pri>[0-9]+)\>(?<time>[^ ]* {1,2}[^ ]* [^ ]*) (?<host>[^ ]*) (?<ident>[a-zA-Z0-9_\/\.\-]*)(?:\[(?<pid>[0-9]+)\])?(?:[^\:]*\:)? *(?<message>.*)$
+        Time_Key    time
+        Time_Format %b %d %H:%M:%S

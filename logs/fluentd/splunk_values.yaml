@@ -1,0 +1,39 @@
+global:
+  logLevel: info
+  splunk:
+    hec:
+      host: uib-lb1.xxx.group
+      port: 8088
+      protocol: http
+      indexName: k8s
+  kubernetes:
+    clusterName: "test"
+    openshift: false
+  prometheus_enabled: false 
+  monitoring_agent_enabled: false
+
+splunk-kubernetes-logging:
+  enabled: true
+  logLevel: info
+
+# https://github.com/splunk/splunk-connect-for-kubernetes/issues/509
+  customFilters: 
+    loggen_filter:
+      tag: tail.file.kube:apiserver-audit
+      type: grep
+      body: |- 
+        @id loggen_filter
+        <exclude>
+          key log
+          pattern "\"verb\":\\s*\"(get|list|watch)\""
+        </exclude>
+    loggen_filter1:
+      tag: tail.file.kube:apiserver-audit
+      type: concat   
+      body: |-
+        key log
+        multiline_start_regexp /^\w[0-1]\d[0-3]\d/
+        flush_interval 5
+        timeout_label @SPLUNK
+        separator ""
+        use_first_timestamp true 

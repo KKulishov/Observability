@@ -1,0 +1,80 @@
+nodeselector: {}
+namespace: bookinfo
+
+images:
+  app:
+    image: registry.xxx.group/s-devops/docker.io/istio/examples-bookinfo-productpage-v1
+    pullPolicy: IfNotPresent
+    tag: "1.17.6"
+
+deployments:
+  app:
+    name: app
+    replicas: 1
+    labels:
+      app: productpage
+      version: v1
+    port: 9080
+    resources:
+        limits:
+          cpu: 300m
+          memory: 300Mi
+        requests:
+          cpu: 100m
+          memory: 128Mi
+    readinessProbe:
+      failureThreshold: 3
+      httpGet:
+        path: /
+        port: 9080
+      periodSeconds: 20
+      successThreshold: 1
+      timeoutSeconds: 5
+      initialDelaySeconds: 10
+    livenessProbe:  
+      failureThreshold: 3
+      httpGet:
+        path: /
+        port: 9080
+      periodSeconds: 20
+      successThreshold: 1
+      timeoutSeconds: 5
+      initialDelaySeconds: 10        
+
+variables:
+  app:
+    OTEL_TRACES_EXPORTER: "otlp"
+    OTEL_PYTHON_LOGGING_AUTO_INSTRUMENTATION_ENABLED: "true"
+    OTEL_SERVICE_NAME: "productpage" 
+    OTEL_EXPORTER_OTLP_ENDPOINT: "coroot-opentelemetry-collector.coroot:4317"
+    OTEL_EXPORTER_OTLP_TRACES_ENDPOINT: "http://coroot-opentelemetry-collector.coroot:4318/v1/traces"
+    OTEL_EXPORTER_OTLP_TRACES_PROTOCOL: "http/protobuf"
+    OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+    MYSQL_HOST: "db"
+    MYSQL_USER: "user"
+    MYSQL_DATABASE: "db"
+    HOST_REDIS: "redis"
+    POSTGRES_DB: "db"
+    POSTGRES_HOST: "postgres"
+    POSTGRES_USER: "user"
+  ratings:
+    DB_TYPE: "mysql"
+    MYSQL_DB_HOST: "db"
+    MYSQL_DB_PORT: 3306
+    MYSQL_DB_USER: "user"
+
+
+secret: []
+
+ingress:
+  app: bookinfo-k8s-test.xxx.group
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+securityContext: {}
+
+podSecurityContext: {}

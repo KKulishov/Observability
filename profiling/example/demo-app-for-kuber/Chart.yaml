@@ -1,0 +1,9 @@
+apiVersion: v2
+name: demo-app
+description: A Helm chart for Kubernetes sre demo-app
+type: application
+maintainers:
+  - email: rnd-mail@yandex.ru
+    name: Kulishov Konstantin
+version: 1.0.1
+appVersion: 1.0.1

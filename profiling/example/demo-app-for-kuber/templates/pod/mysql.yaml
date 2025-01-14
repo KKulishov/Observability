@@ -1,0 +1,70 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: db
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: db
+spec:
+  serviceName: db
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+        - name: db
+          image: mysql:8.0.21
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
+            requests:
+              cpu: 200m
+              memory: 300Mi
+          readinessProbe:
+            failureThreshold: 3
+            tcpSocket:
+              port: 3306
+            periodSeconds: 15
+            successThreshold: 1
+            timeoutSeconds: 2
+          livenessProbe:
+            failureThreshold: 3
+            tcpSocket:
+              port: 3306
+            periodSeconds: 15
+            successThreshold: 1
+            timeoutSeconds: 2
+            initialDelaySeconds: 20
+          envFrom:
+          - configMapRef:
+              name: db
+          env:
+          - name: MYSQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: MYSQL_PASSWORD 
+          - name: MYSQL_ROOT_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: MYSQL_ROOT_PASSWORD           
+          volumeMounts:
+            - mountPath: /var/lib/mysql 
+              name: test-volume
+  volumeClaimTemplates:
+  - metadata:
+      name: test-volume
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 2Gi
+      storageClassName: "longhorn" 

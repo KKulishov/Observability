@@ -1,0 +1,76 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: postgres
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: 'true'
+        prometheus.io/port: '8080'
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:14.10-bullseye
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1024Mi
+            requests:
+              cpu: 200m
+              memory: 300Mi
+          envFrom:
+          - configMapRef:
+              name: postgres
+          env:
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-secret
+                key: POSTGRES_PASSWORD       
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-volume
+        - name: pg-agent
+          image: ghcr.io/coroot/coroot-pg-agent:latest
+          env:
+            - name: PGUSER
+              value: user
+            - name: PGPASSWORD
+              value: pass
+            - name: PGHOST
+              value: 127.0.0.1
+            - name: LISTEN
+              value: 0.0.0.0:8080
+            - name: DSN
+              value: postgresql://$(PGUSER):$(PGPASSWORD)@$(PGHOST):5432/db?sslmode=disable
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi      
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-volume
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 2Gi
+      storageClassName: "longhorn" 

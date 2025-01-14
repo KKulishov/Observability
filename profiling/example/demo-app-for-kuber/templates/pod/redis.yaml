@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: redis
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+      sidecar: exporter-redis
+  template:
+    metadata:
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9121"
+        prometheus.io/path: "/metrics"
+      labels:
+        app: redis
+        sidecar: exporter-redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:alpine
+          command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
+          resources:
+            limits:
+              cpu: 300m
+              memory: 300Mi
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          ports:
+            - containerPort: 6379
+          #readinessProbe:
+          #  failureThreshold: 3
+          #  tcpSocket:
+          #    port: 6379
+          #  periodSeconds: 15
+          #  successThreshold: 1
+          #  timeoutSeconds: 2
+          #livenessProbe:
+          #  failureThreshold: 3
+          #  tcpSocket:
+          #    port: 6379
+          #  periodSeconds: 15
+          #  successThreshold: 1
+          #  timeoutSeconds: 2
+          #  initialDelaySeconds: 20
+          volumeMounts:
+            - mountPath: /usr/local/etc/redis/
+              name: redis-conf
+            - mountPath: /data
+              name: data 
+        - name: redis-exporter      
+          image: oliver006/redis_exporter:latest
+          env:
+            - name: REDIS_ADDR
+              value: 127.0.0.1
+            - name: REDIS_PASSWORD
+              value: "WDywuquruWySnB"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+          ports:
+            - containerPort: 9121
+              name: metrics
+              protocol: TCP
+      volumes:
+        - name: data
+          emptyDir: {}  
+        - name: redis-conf
+          configMap:
+            name: redis-configmap
+            items:
+              - key: redis.conf
+                path: redis.conf    
