@@ -1,0 +1,21 @@
+apiVersion: chaosblade.io/v1alpha1
+kind: ChaosBlade
+metadata:
+  name: network-drop
+spec:
+  experiments:
+  - scope: pod
+    target: network
+    action: drop
+    desc: "Simulate network connection drop for a specific pod"
+    matchers:
+    - name: labels
+      value: ["app=db"]
+    - name: namespace
+      value: ["bookinfo"]  # Укажите namespace вашего пода
+    - name: evict-percent
+      value: ["50"]
+    - name: source-port
+      value: ["3306"]
+    - name: timeout
+      value: ["260"]  # Продолжительность эксперимента в секундах

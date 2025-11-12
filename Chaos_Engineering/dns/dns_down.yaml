@@ -1,0 +1,19 @@
+apiVersion: chaosblade.io/v1alpha1
+kind: ChaosBlade
+metadata:
+  name: dns-down
+spec:
+  experiments:
+  - scope: pod
+    target: network
+    action: dns_down
+    desc: "Simulate dns down"
+    matchers:
+    - name: labels
+      value: ["app=productpage"]  # Укажите имя вашего пода
+    - name: namespace
+      value: ["bookinfo"]  # Укажите namespace вашего пода
+    - name: evict-percent
+      value: ["50"]  # Процент потери пакетов
+    - name: timeout
+      value: ["240"]

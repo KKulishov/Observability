@@ -1,0 +1,22 @@
+apiVersion: chaosblade.io/v1alpha1
+kind: ChaosBlade
+metadata:
+  name: increase-container-memory-load-by-id
+spec:
+  experiments:
+    - scope: container
+      target: mem
+      action: load
+      desc: "increase container memory load by id"
+      matchers:
+        - name: container-names
+          value:
+            - "productpage"
+        - name: namespace
+          value: ["bookinfo"]
+        - name: labels
+          value: ["app=productpage"]
+        - name: mem-percent
+          value: ["100"]
+        - name: timeout
+          value: ["360"]  # Продолжительность эксперимента в секундах

@@ -1,0 +1,21 @@
+apiVersion: chaosblade.io/v1alpha1
+kind: ChaosBlade
+metadata:
+  name: network-loss
+spec:
+  experiments:
+  - scope: pod
+    target: network
+    action: loss
+    desc: "Simulate network packet loss for a specific pod"
+    matchers:
+    - name: labels
+      value: ["app=db"]  # Укажите имя вашего пода
+    - name: namespace
+      value: ["bookinfo"]  # Укажите namespace вашего пода
+    - name: interface
+      value: ["eth0"]  # Укажите сетевой интерфейс
+    - name: percent
+      value: ["95"]  # Процент потери пакетов
+    - name: timeout
+      value: ["240"]  # Продолжительность эксперимента в секундах
