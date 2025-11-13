@@ -18,3 +18,5 @@ spec:
           value: ["python"]
         - name: labels
           value: ["app=productpage"]
+        - name: timeout       
+          value: ["360"]

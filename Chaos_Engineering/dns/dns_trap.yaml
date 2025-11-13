@@ -4,19 +4,19 @@ metadata:
   name: tamper-container-dns-by-id
 spec:
   experiments:
-    - scope: container
-      target: network
-      action: dns
+    - scope: container # Эксперимент применяетсяна уровне отдельного контейнера
+      target: network  # Воздействие на сетевую подсистему
+      action: dns      # Выполняетсяманипуляция с DNS-запросами (подмена ответов)
       desc: "tamper container dns by id"
       matchers:
         - name: container-names
           value:
             - "productpage"
-        - name: domain
+        - name: domain  # DNS-запросы к этому домену будут перехвачены.
           value: ["pyroscope.pyroscope.svc.cluster.local"]
-        - name: ip
+        - name: ip                 # Вместо настоящего IP, клиенту вернётся 10.0.0.1
           value: ["10.0.0.1"]
-        - name: namespace
+        - name: namespace          # Эксперимент ограничен неймспейсом
           value: ["bookinfo"]
-        - name: labels
+        - name: labels             # Поды отбираются по метке
           value: ["app=productpage"]

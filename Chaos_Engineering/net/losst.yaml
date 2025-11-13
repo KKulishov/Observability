@@ -4,9 +4,9 @@ metadata:
   name: network-loss
 spec:
   experiments:
-  - scope: pod
-    target: network
-    action: loss
+  - scope: pod      # Эксперимент применяется к подам.
+    target: network # Цель — сетевая подсистема (а не процесс, диск и т.п.).
+    action: loss    # симулирует потерю пакетов (реализуется через tc netem в Linux).
     desc: "Simulate network packet loss for a specific pod"
     matchers:
     - name: labels

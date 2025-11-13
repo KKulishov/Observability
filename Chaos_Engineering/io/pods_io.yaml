@@ -4,27 +4,27 @@ metadata:
   name: inject-pod-by-labels
 spec:
   experiments:
-    - scope: pod
+    - scope: pod  # Эксперимент применяется на уровне пода
       target: pod
-      action: IO
+      action: IO  # Выполняется имитация сбоя I/O (операций ввода-вывода) внутри контейнера
       desc: "Pod IO Exception by labels"
       matchers:
-        - name: labels
+        - name: labels  # Выбирает только те поды, у которых есть метка
           value: ["app=productpage"]
-        - name: namespace
+        - name: namespace  
           value: ["bookinfo"]
-        - name: method
+        - name: method  # Применяет сбой только к операциям чтения
           value:
-            - "read"
-        - name: delay
+            - "read"  
+        - name: delay  # Добавляет задержку 1000 миллисекунд (1 секунда) для каждой выбранной операции чтения.
           value:
-            - "1000"
-        - name: path
+            - "1000"  
+        - name: path  # Пустая строка означает: применять ко всем путям (всей файловой системе контейнера).
           value:
             - ""
-        - name: percent
+        - name: percent # Сбой (задержка + ошибка) будет применён к 60% операций чтения (вероятностный эффект).
           value:
             - "60"
-        - name: errno
+        - name: errno  # Код ошибки 28 соответствует системной ошибке ENOSPC — "No space left on device".
           value:
             - "28"

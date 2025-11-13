@@ -4,18 +4,18 @@ metadata:
   name: network-drop
 spec:
   experiments:
-  - scope: pod
-    target: network
-    action: drop
+  - scope: pod  # Эксперимент применяется к подам.
+    target: network # Цель — сетевая подсистема (а не процесс, диск и т.п.).
+    action: drop  # полное отбрасывание пакетов(без отправки RST/ICMP, как приloss).
     desc: "Simulate network connection drop for a specific pod"
     matchers:
-    - name: labels
+    - name: labels # Выбирает поды с меткой app=db.
       value: ["app=db"]
     - name: namespace
-      value: ["bookinfo"]  # Укажите namespace вашего пода
-    - name: evict-percent
+      value: ["bookinfo"]  
+    - name: evict-percent # % отброса пакетов 
       value: ["50"]
-    - name: source-port
+    - name: source-port  # порт источника приложения 
       value: ["3306"]
-    - name: timeout
-      value: ["260"]  # Продолжительность эксперимента в секундах
+    - name: timeout     # продлится 260 секунд      
+      value: ["260"]  

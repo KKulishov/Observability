@@ -9,14 +9,14 @@ spec:
       action: fullload
       desc: "increase container cpu load by id"
       matchers:
-        - name: container-names
-          value:
-            - "productpage"
-        - name: cpu-percent
+        - name: container-names  ## имя контейнера 
+          value: 
+            - "productpage"       
+        - name: cpu-percent    ## какая нагрузка в % сотношении к requst
           value: ["100"]
-        - name: namespace
-          value: ["bookinfo"]
-        - name: labels
+        - name: namespace      ## namespace проекта 
+          value: ["bookinfo"] 
+        - name: labels         ## метка приложения на что распространяется 
           value: ["app=productpage"] 
-        - name: timeout
+        - name: timeout        ## время выполнения теста 
           value: ["360"]
